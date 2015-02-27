@@ -88,10 +88,10 @@ end
 function jsonlib()
 	if (_OPTIONS.dotnet == "mono") then
 		-- Assume Mono 2.0
-		return os.findlib("Newtonsoft.Json") or "Pulsar4X/deps/Json45r8/bin/Net40/Newtonsoft.Json.dll"
+		return os.findlib("Newtonsoft.Json") or "Pulsar4X/deps/Json60r8/bin/Net40/Newtonsoft.Json.dll"
 	else
 		-- .NET 4.0
-		return os.findlib("Newtonsoft.Json") or "Pulsar4X/deps/Json45r8/bin/Net40/Newtonsoft.Json.dll"
+		return os.findlib("Newtonsoft.Json") or "Pulsar4X/deps/Json60r8/bin/Net40/Newtonsoft.Json.dll"
 	end
 end
 
