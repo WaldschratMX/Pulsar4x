@@ -42,6 +42,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DataBlobs\AtmosphereDB.cs" />
+    <Compile Include="DataBlobs\AtmosphericGasDB.cs" />
     <Compile Include="DataBlobs\BaseDataBlob.cs" />
     <Compile Include="DataBlobs\NameDB.cs" />
     <Compile Include="DataBlobs\OrbitDB.cs" />
@@ -51,6 +52,8 @@
     <Compile Include="DataBlobs\RuinsDB.cs" />
     <Compile Include="DataBlobs\StarInfoDB.cs" />
     <Compile Include="DataBlobs\MassVolumeDB.cs" />
+    <Compile Include="DataBlobs\SpeciesDB.cs" />
+    <Compile Include="Engine-Comms.cs" />
     <Compile Include="EntityManager.cs" />
     <Compile Include="Factories\AtmosphereFactory.cs" />
     <Compile Include="Game.cs" />
@@ -67,6 +70,7 @@
     <Compile Include="Processors\OrbitProcessor.cs" />
     <Compile Include="Processors\PhaseProcessor.cs" />
     <Compile Include="Processors\RuinsProcessor.cs" />
+    <Compile Include="Processors\SpeciesProcessor.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StarSystem.cs" />
   </ItemGroup>

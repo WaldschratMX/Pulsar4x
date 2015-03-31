@@ -9,45 +9,27 @@ namespace Pulsar4X.ECSLib.Processors
 {
     static class OrbitProcessor
     {
-        static int m_orbitTypeIndex = -1;
-        static int m_positionTypeIndex = -1;
-
-        public static void Initialize()
-        {
-            if (m_orbitTypeIndex == -1)
-            {
-                // Important for maximum performance. Otherwise we would do this lookup several times.
-                m_orbitTypeIndex = Game.Instance.GlobalManager.GetDataBlobTypeIndex<OrbitDB>();
-                m_positionTypeIndex = Game.Instance.GlobalManager.GetDataBlobTypeIndex<PositionDB>();
-            }
-        }
+        static int _orbitTypeIndex = -1;
+        static int _positionTypeIndex = -1;
 
         public static void Process(StarSystem system, int deltaSeconds)
         {
             EntityManager currentManager = system.SystemManager;
 
-            OrbitDB rootOrbit = FindRootOrbit(currentManager);
-
-            if (rootOrbit == null)
+            if (_orbitTypeIndex == -1)
             {
-                return;
+                // Important for maximum performance. Otherwise we would do this lookup several times.
+                _orbitTypeIndex = currentManager.GetTypeIndex<OrbitDB>();
+                _positionTypeIndex = currentManager.GetTypeIndex<PositionDB>();
             }
 
-            DateTime currentTime = Game.Instance.CurrentDateTime;
-
-            // Call recursive function to update every orbit in this system.
-            UpdateOrbit(currentManager, rootOrbit, new PositionDB(0,0), currentTime);
-        }
-
-        private static OrbitDB FindRootOrbit(EntityManager currentManager)
-        {
             // Find the first orbital entity.
-            int firstOrbital = currentManager.GetFirstEntityWithDataBlob(m_orbitTypeIndex);
+            int firstOrbital = currentManager.GetFirstEntityWithDataBlob(_orbitTypeIndex);
 
             if (firstOrbital == -1)
             {
                 // No orbitals in this manager.
-                return null;
+                return;
             }
 
             OrbitDB firstOrbit;
@@ -55,10 +37,13 @@ namespace Pulsar4X.ECSLib.Processors
             do
             {
                 // Get the parentmost orbit.
-                firstOrbit = currentManager.GetDataBlob<OrbitDB>(firstOrbital, m_orbitTypeIndex);
+                firstOrbit = currentManager.GetDataBlob<OrbitDB>(firstOrbital, _orbitTypeIndex);
             } while (firstOrbit.Parent != -1);
 
-            return firstOrbit;
+            DateTime currentTime = Game.Instance.CurrentDateTime;
+
+            // Call recursive function to update every orbit in this system.
+            UpdateOrbit(currentManager, firstOrbit, new PositionDB(0, 0), currentTime);
         }
 
         private static void UpdateOrbit(EntityManager currentManager, OrbitDB orbit, PositionDB parentPosition, DateTime currentTime)
@@ -76,7 +61,7 @@ namespace Pulsar4X.ECSLib.Processors
             foreach (int child in orbit.Children)
             {
                 // RECURSION!
-                OrbitDB childOrbit = currentManager.GetDataBlob<OrbitDB>(child, m_orbitTypeIndex);
+                OrbitDB childOrbit = currentManager.GetDataBlob<OrbitDB>(child, _orbitTypeIndex);
                 UpdateOrbit(currentManager, childOrbit, newPosition, currentTime);
             }
         }
