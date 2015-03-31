@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Pulsar4X.ECSLib.Helpers.GameMath
+namespace Pulsar4X.ECSLib.Helpers
 {
     /// <summary>
     /// Small Helper Class for Angle unit Conversions
@@ -181,6 +181,21 @@ namespace Pulsar4X.ECSLib.Helpers.GameMath
         }
     }
 
+
+    /// <summary>
+    /// Small helper struct to make all these min/max dicts. nicer.
+    /// </summary>
+    public struct MinMaxStruct 
+    { 
+        public double Min, Max;
+
+        public MinMaxStruct(double min, double max)
+        {
+            Min = min;
+            Max = max;
+        }
+    }
+
     /// <summary>
     /// Just a container for some general math functions.
     /// </summary>
@@ -205,6 +220,82 @@ namespace Pulsar4X.ECSLib.Helpers.GameMath
         public static double Clamp01(double value)
         {
             return Clamp(value, 0, 1);
+        }
+
+        /// <summary>
+        /// Selects a number from a range based on the selection percentage provided.
+        /// </summary>
+        public static double SelectFromRange(MinMaxStruct minMax, double selection)
+        {
+            return minMax.Min + selection * (minMax.Max - minMax.Min); ;
+        }
+
+        /// <summary>
+        /// Returns the next Double from m_RNG adjusted to be between the min and max range.
+        /// </summary>
+        public static double RNG_NextDoubleRange(Random RNG, double min, double max)
+        {
+            return (min + RNG.NextDouble() * (max - min));
+        }
+
+        /// <summary>
+        /// Version of RNG_NextDoubleRange(double min, double max) that takes GalaxyGen.MinMaxStruct directly.
+        /// </summary>
+        public static double RNG_NextDoubleRange(Random RNG, MinMaxStruct minMax)
+        {
+            return RNG_NextDoubleRange(RNG, minMax.Min, minMax.Max);
+        }
+
+        /// <summary>
+        /// Raises the random number generated to the power provided to produce a non-uniform selection from the range.
+        /// </summary>
+        public static double RNG_NextDoubleRangeDistributedByPower(Random RNG, double min, double max, double power)
+        {
+            return min + Math.Pow(RNG.NextDouble(), power) * (max - min);
+        }
+
+        /// <summary>
+        /// Version of RNG_NextDoubleRangeDistributedByPower(double min, double max, double power) that takes GalaxyGen.MinMaxStruct directly.
+        /// </summary>
+        public static double RNG_NextDoubleRangeDistributedByPower(Random RNG, MinMaxStruct minMax, double power)
+        {
+            return RNG_NextDoubleRangeDistributedByPower(RNG, minMax.Min, minMax.Max, power);
+        }
+
+        /// <summary>
+        /// Returns a value between the min and max.
+        /// </summary>
+        public static uint RNG_NextRange(Random RNG, MinMaxStruct minMax)
+        {
+            return (uint)RNG.Next((int)minMax.Min, (int)minMax.Max);
+        }
+
+        /// <summary>
+        /// Randomly reverses the current sign of the value, i.e. it will randomly make the number positive or negative.
+        /// </summary>
+        public static double RNG_RandomizeSign(Random RNG, double value)
+        {
+            // 50/50 odds of reversing the sign:
+            if (RNG.NextDouble() > 0.5)
+                return value * -1;
+
+            return value;
+        }
+
+        /// <summary>
+        /// Very simple random shuffle.
+        /// </summary>
+        public static void RandomShuffle<T>(Random RNG, List<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = RNG.Next(n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
         }
     }
 }

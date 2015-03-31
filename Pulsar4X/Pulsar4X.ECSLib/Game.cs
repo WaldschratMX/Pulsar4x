@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Pulsar4X.ECSLib.DataBlobs;
-using Pulsar4X.Helpers;
-using Pulsar4X;
-using System.Threading;
 using Pulsar4X.ECSLib.Processors;
+using Pulsar4X.ECSLib.Helpers;
 
 namespace Pulsar4X.ECSLib
 {
@@ -25,10 +24,14 @@ namespace Pulsar4X.ECSLib
         public static Game Instance { get { return m_instance; } }
         private static Game m_instance;
 
+        public Random RNG;
+
         /// <summary>
         /// List of StarSystems currently in the game.
         /// </summary>
         public List<StarSystem> StarSystems { get; set; }
+        public int StarSystemCurrentIndex { get; set; }
+
         public DateTime CurrentDateTime { get; set; }
 
         public SubpulseLimitRequest NextSubpulse
@@ -67,6 +70,8 @@ namespace Pulsar4X.ECSLib
             m_globalManager = new EntityManager();
             m_instance = this;
 
+            RNG = new Random();
+
             StarSystems = new List<StarSystem>();
 
             CurrentDateTime = DateTime.Now;
@@ -93,7 +98,7 @@ namespace Pulsar4X.ECSLib
             int timeAdvanced = 0;
 
             // Clamp deltaSeconds to a multiple of our MinimumTimestep.
-            deltaSeconds = deltaSeconds - (deltaSeconds % GameSettings.GameConstants.MinimumTimestep);
+            deltaSeconds -= (deltaSeconds % GameSettings.GameConstants.MinimumTimestep);
             if (deltaSeconds == 0)
             {
                 deltaSeconds = GameSettings.GameConstants.MinimumTimestep;

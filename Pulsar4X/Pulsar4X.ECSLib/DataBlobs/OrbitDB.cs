@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using Pulsar4X.ECSLib.Helpers.GameMath;
+using Pulsar4X.ECSLib.Helpers;
 
 namespace Pulsar4X.ECSLib.DataBlobs
 {
-    public class OrbitDB : BaseDataBlob
+    class OrbitDB : BaseDataBlob
     {
         /// <summary>
         /// Entity that this orbit orbits.
@@ -18,16 +18,6 @@ namespace Pulsar4X.ECSLib.DataBlobs
         /// Children that orbit this entity.
         /// </summary>
         public List<int> Children;
-
-        /// <summary>
-        /// Mass in KG of this entity.
-        /// </summary>
-        public double Mass;
-
-        /// <summary>
-        /// Mass in KG of parent (object this orbit orbits)
-        /// </summary>
-        public double ParentMass;
 
         /// <summary>
         /// Semimajor Axis of orbit stored in AU.
@@ -113,7 +103,7 @@ namespace Pulsar4X.ECSLib.DataBlobs
         /// <param name="longitudeOfPeriapsis">Longitude of periapsis in degrees.</param>
         /// <param name="meanLongitude">Longitude of object at epoch in degrees.</param>
         /// <param name="epoch">Referance time for these orbital elements.</param>
-        public static OrbitDB FromMajorPlanetFormat(int parentID, double mass, double parentMass, double semiMajorAxis, double eccentricity, double inclination,
+        public static OrbitDB FromMajorPlanetFormat(int parentID, double parentMass, double mass, double semiMajorAxis, double eccentricity, double inclination,
                                                     double longitudeOfAscendingNode, double longitudeOfPeriapsis, double meanLongitude, DateTime epoch)
         {
             // http://en.wikipedia.org/wiki/Longitude_of_the_periapsis
@@ -121,7 +111,7 @@ namespace Pulsar4X.ECSLib.DataBlobs
             // http://en.wikipedia.org/wiki/Mean_longitude
             double meanAnomaly = meanLongitude - (longitudeOfAscendingNode + argumentOfPeriapsis);
 
-            return new OrbitDB(parentID, mass, parentMass, semiMajorAxis, eccentricity, inclination, longitudeOfAscendingNode, argumentOfPeriapsis, meanAnomaly, epoch);
+            return new OrbitDB(parentID, parentMass, mass, semiMajorAxis, eccentricity, inclination, longitudeOfAscendingNode, argumentOfPeriapsis, meanAnomaly, epoch);
         }
 
         /// <summary>
@@ -136,33 +126,32 @@ namespace Pulsar4X.ECSLib.DataBlobs
         /// <param name="argumentOfPeriapsis">Argument of periapsis in degrees.</param>
         /// <param name="meanAnomaly">Mean Anomaly in degrees.</param>
         /// <param name="epoch">Referance time for these orbital elements.</param>
-        public static OrbitDB FromAsteroidFormat(int parentID, double mass, double parentMass, double semiMajorAxis, double eccentricity, double inclination,
+        public static OrbitDB FromAsteroidFormat(int parentID, double parentMass, double mass, double semiMajorAxis, double eccentricity, double inclination,
                                                 double longitudeOfAscendingNode, double argumentOfPeriapsis, double meanAnomaly, DateTime epoch)
         {
-            return new OrbitDB(parentID, mass, parentMass, semiMajorAxis, eccentricity, inclination, longitudeOfAscendingNode, argumentOfPeriapsis, meanAnomaly, epoch);
+            return new OrbitDB(parentID, parentMass, mass, semiMajorAxis, eccentricity, inclination, longitudeOfAscendingNode, argumentOfPeriapsis, meanAnomaly, epoch);
         }
 
         /// <summary>
         /// Creates an orbit that never moves.
         /// </summary>
-        public static OrbitDB FromStationary(double mass)
+        public static OrbitDB FromStationary()
         {
-            return new OrbitDB(mass);
+            return new OrbitDB();
         }
 
-        private OrbitDB(double mass)
+        public OrbitDB()
         {
             Parent = -1;
-            Mass = mass;
+            Children = new List<int>();
             IsStationary = true;
         }
 
-        private OrbitDB(int parentID, double mass, double parentMass, double semiMajorAxis, double eccentricity, double inclination,
+        private OrbitDB(int parentID, double parentMass, double mass, double semiMajorAxis, double eccentricity, double inclination,
                         double longitudeOfAscendingNode, double argumentOfPeriapsis, double meanAnomaly, DateTime epoch)
+            : this()
         {
             Parent = parentID;
-            Mass = mass;
-            ParentMass = parentMass;
             SemiMajorAxis = semiMajorAxis;
             Eccentricity = Math.Min(eccentricity, 0.8D); // Max eccentricity is 0.8 Orbit code has issues at higher eccentricity. (Note: If restriction lifed, fix code in GetEccentricAnomaly)
             Inclination = inclination;
@@ -171,14 +160,14 @@ namespace Pulsar4X.ECSLib.DataBlobs
             MeanAnomaly = meanAnomaly;
             Epoch = epoch;
             IsStationary = false;
-            
+
             // Calculate extended parameters.
             // http://en.wikipedia.org/wiki/Standard_gravitational_parameter#Two_bodies_orbiting_each_other
-            GravitationalParameter = GameSettings.Science.GravitationalConstant * (ParentMass + Mass) / (1000 * 1000 * 1000); // Normalize GravitationalParameter from m^3/s^2 to km^3/s^2
+            GravitationalParameter = GameSettings.Science.GravitationalConstant * (parentMass + mass) / (1000 * 1000 * 1000); // Normalize GravitationalParameter from m^3/s^2 to km^3/s^2
 
             // http://en.wikipedia.org/wiki/Orbital_period#Two_bodies_orbiting_each_other
             double orbitalPeriod = 2 * Math.PI * Math.Sqrt(Math.Pow(Distance.ToKm(SemiMajorAxis), 3) / (GravitationalParameter));
-            if (orbitalPeriod * 10000000 > Int64.MaxValue)
+            if (orbitalPeriod * 10000000 > Int64.MaxValue) // 10000000 * orbitalPeriod converts it to "ticks", which timespan uses internally in a 64 bit int.
             {
                 OrbitalPeriod = TimeSpan.MaxValue;
             }

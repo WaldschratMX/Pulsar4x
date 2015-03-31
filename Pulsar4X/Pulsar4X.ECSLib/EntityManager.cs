@@ -199,7 +199,7 @@ namespace Pulsar4X.ECSLib
 
             return entities;
         }
-
+        
         /// <summary>
         /// Returns the first entity found with the specified DataBlobType.
         /// <para></para>

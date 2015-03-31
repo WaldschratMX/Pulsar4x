@@ -43,14 +43,23 @@
   <ItemGroup>
     <Compile Include="DataBlobs\AtmosphereDB.cs" />
     <Compile Include="DataBlobs\BaseDataBlob.cs" />
+    <Compile Include="DataBlobs\NameDB.cs" />
     <Compile Include="DataBlobs\OrbitDB.cs" />
-    <Compile Include="DataBlobs\PlanetInfoDB.cs" />
+    <Compile Include="DataBlobs\SystemBodyDB.cs" />
     <Compile Include="DataBlobs\PopulationDB.cs" />
     <Compile Include="DataBlobs\PositionDB.cs" />
     <Compile Include="DataBlobs\RuinsDB.cs" />
+    <Compile Include="DataBlobs\StarInfoDB.cs" />
+    <Compile Include="DataBlobs\MassVolumeDB.cs" />
     <Compile Include="EntityManager.cs" />
+    <Compile Include="Factories\AtmosphereFactory.cs" />
     <Compile Include="Game.cs" />
     <Compile Include="GameSettings.cs" />
+    <Compile Include="Factories\GalaxyFactory.cs" />
+    <Compile Include="Factories\JumpPointFactory.cs" />
+    <Compile Include="Factories\StarSystemFactory.cs" />
+    <Compile Include="Factories\StarFactory.cs" />
+    <Compile Include="Factories\SystemBodyFactory.cs" />
     <Compile Include="Helpers\ComparableBitArray.cs" />
     <Compile Include="Helpers\GameMath.cs" />
     <Compile Include="Helpers\Interrupt.cs" />

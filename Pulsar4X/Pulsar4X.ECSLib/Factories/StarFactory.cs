@@ -1,0 +1,284 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Pulsar4X.ECSLib.DataBlobs;
+using Pulsar4X.ECSLib.Helpers;
+
+namespace Pulsar4X.ECSLib.Factories
+{
+    static class StarFactory
+    {
+        // <@ todo: Review/Update documentation for this file.
+
+        /// <summary>
+        /// Generates an entire group of stars for a starSystem.
+        /// </summary>
+        /// <remarks>
+        /// Stars created with this method are not given an Orbit datablob.
+        /// Stars created with this method are sorted by mass.
+        /// Stars created with this method are added to the newSystem's EntityManager.
+        /// </remarks>
+        /// <param name="System">The Star System the new stars belongs to.</param>
+        /// <returns>A mass-sorted list of entity ID's for the generated stars.</returns>
+        public static List<int> CreateStarsForSystem(Random RNG, StarSystem newSystem, int numStars)
+        {
+            // Argument Validation.
+            if (RNG == null)
+            {
+                throw new ArgumentNullException("RNG");
+            }
+            if (newSystem == null)
+            {
+                throw new ArgumentNullException("newSystem");
+            }
+
+            // First, generate spectral types, and masses for each star.
+            int starsProcessed = 0;
+            
+            List<Tuple<SpectralType, double, double>> starInfo = new List<Tuple<SpectralType,double,double>>();
+
+            while (starsProcessed < numStars)
+            {
+                SpectralType specType = SpectralType.M;
+
+                if (GalaxyFactory.RealStarSystems)
+                {
+                    specType = GalaxyFactory.StarTypeDistributionForRealStars.Select(RNG.NextDouble());
+                }
+                else
+                {
+                    specType = GalaxyFactory.StarTypeDistributionForFakeStars.Select(RNG.NextDouble());
+                }
+                
+                double randomSelection = RNG.NextDouble(); // we will use the one random number to select from all the spectral type ranges. Should give us saner numbers for stars.
+
+                // Generate mass.
+                starInfo[starsProcessed] = new Tuple<SpectralType,double,double>(specType, randomSelection, GMath.SelectFromRange(GalaxyFactory.StarMassBySpectralType[specType], randomSelection));
+
+                starsProcessed++;
+            }
+
+            // Sort the list by mass.
+            starInfo.Sort(
+                (Tuple<SpectralType, double, double> starA, Tuple<SpectralType, double, double> starB) =>
+                {
+                    if (starA.Item3 < starB.Item3)
+                    {
+                        return 1;
+                    }
+                    if (starA.Item3 > starB.Item3)
+                    {
+                        return -1;
+                    }
+                    return 0;
+                }
+            );
+
+            // Fill in the details of each star and finalize our return list.
+            List<int> stars = new List<int>();
+            starsProcessed = 0;
+            while (starsProcessed < numStars)
+            {
+                // Break the variables out of the Tuple for clarity.
+                SpectralType starType = starInfo[starsProcessed].Item1;
+                double randomSelection = starInfo[starsProcessed].Item2;
+                double starMass = starInfo[starsProcessed].Item3;
+
+                // Generate the star's datablobs.
+                MassVolumeDB bodyData = GenerateBodyInfo(starType, starMass, randomSelection);
+                StarInfoDB starData = GenerateStarInfo(bodyData, starType, randomSelection);
+                NameDB nameData = new NameDB(newSystem.Name + " - " + ('A' + (char)starsProcessed)); // CharMath for magic!
+                PositionDB positionData = new PositionDB(0, 0);
+
+                // Add generated datablobs to a list.
+                List<BaseDataBlob> starDataBlobs = new List<BaseDataBlob>();
+                starDataBlobs.Add(bodyData);
+                starDataBlobs.Add(starData);
+                starDataBlobs.Add(nameData);
+                starDataBlobs.Add(positionData);
+
+                // Use the List<BaseDataBlob> entity creator to register the star and link components.
+                int star = newSystem.SystemManager.CreateEntity(starDataBlobs);
+                stars.Add(star);
+
+                // Next!
+                starsProcessed++;
+            }
+
+            return stars;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <remarks>
+        /// This function randomly generates the Radius of a star and then returns a SystemBodyDB with those generated values.
+        /// What follows is a breif description of how that is done for each data point:
+        /// <list type="Bullet">
+        /// <item>
+        /// <b>Radius:</b> The radius of a star is generated by first getting a random number between 0 and 1 and then using that to pick a position in a range of 
+        /// possible radii for a star of a given spectral type. 
+        /// </item>
+        /// <param name="spectralType"></param>
+        /// <param name="mass"></param>
+        /// <param name="randomSelection"></param>
+        /// <returns></returns>
+        private static MassVolumeDB GenerateBodyInfo(SpectralType spectralType, double mass, double randomSelection)
+        {
+            MassVolumeDB bodyData = new MassVolumeDB();
+            bodyData.Mass = mass;
+            bodyData.Radius = GMath.SelectFromRange(GalaxyFactory.StarRadiusBySpectralType[spectralType], randomSelection);
+            bodyData.SupportsPopulations = false;
+
+            return bodyData;
+        }
+
+
+        /// <summary>
+        /// Generates Data for a star based on it's spectral type and populates it with the data.
+        /// </summary>
+        /// <remarks>
+        /// This function randomly generates the Radius, Temperature, Luminosity, Mass and Age of a star and then returns a star populated with those generated values.
+        /// What follows is a breif description of how that is done for each data point:
+        /// <list type="Bullet">
+        /// <item>
+        /// <b>Temperature:</b> The Temp. of the star is obtained by using the Randon.Next(min, max) function to get a random Temp. in the range a star of the given 
+        /// spectral type.
+        /// </item>
+        /// <item>
+        /// <b>Luminosity:</b> The Luminosity of a star is calculated by using the RNG_NextDoubleRange() function to get a random Luminosity in the range a star of the 
+        /// given spectral type.
+        /// </item>
+        /// <item>
+        /// <b>Age:</b> The possible ages for a star depend largly on its mass. The bigger and heaver the star the more pressure is put on its core where fusion occure 
+        /// which increases the rate that it burns Hydrodgen which reduces the life of the star. The Big O class stars only last a few million years before either 
+        /// going Hyper Nova or devolving into a class B star. on the other hand a class G star (like Sol) has a life expectancy of about 10 billion years while a 
+        /// little class M star could last 100 billion years or more (hard to tell given that the Milky way is 13.2 billion years old and the univers is only 
+        /// about a billion years older then that). Given this we first use the mass of the star to produce a number between 0 and 1 that we can use to pick a 
+        /// possible age from the range (just like all the above). To get the number between 0 and 1 we use the following formula:
+        /// <c>1 - Mass / MaxMassOfStarOfThisType</c>
+        /// </item>
+        /// </list>
+        /// </remarks>
+        /// <param name="bodyData">The SystemBodyDB of the star.</param>
+        /// <param name="spectralType">The Spectral Type of the star.</param>
+        /// <param name="randomSelection">Random selection to generate consistent values.</param>
+        /// <returns>A StarInfoDB Populated with data generated based on Spectral Type and SystemBodyDB information provided.</returns>
+        private static StarInfoDB GenerateStarInfo(MassVolumeDB bodyData, SpectralType spectralType, double randomSelection)
+        {
+            double maxStarAge = GalaxyFactory.StarAgeBySpectralType[spectralType].Max;
+
+            StarInfoDB starData = new StarInfoDB();
+            
+            starData.Age = (1 - bodyData.Mass / GalaxyFactory.StarMassBySpectralType[spectralType].Max) * maxStarAge; // note the fiddly math at the start here is to make more massive stars younger.
+            starData.SpectralType = spectralType;
+            starData.Temperature = (uint)Math.Round(GMath.SelectFromRange(GalaxyFactory.StarTemperatureBySpectralType[spectralType], randomSelection));
+            starData.Luminosity = (float)GMath.SelectFromRange(GalaxyFactory.StarLuminosityBySpectralType[spectralType], randomSelection);
+
+            // Generate a string specifing the full spectral class form a star.
+            // start by getting the sub-division, which is based on temp.
+            double sub = starData.Temperature / GalaxyFactory.StarTemperatureBySpectralType[starData.SpectralType].Max;  // temp rang from 0 to 1.
+            starData.SpectralSubDivision = (ushort)Math.Round((1 - sub) * 10);  // invert temp range as 0 is hottest, 9 is coolest.
+
+            // now get the luminosity class
+            ///< @todo For right now everthing is just main sequence. see http://en.wikipedia.org/wiki/Stellar_classification
+            /// on how this should be done. For right now tho class V is fine (its just flavor text).
+            starData.LuminosityClass = LuminosityClass.V;
+
+            // finally add them all up to get the class string:
+            starData.Class = starData.SpectralType.ToString() + starData.SpectralSubDivision.ToString() + "-" + starData.LuminosityClass.ToString();
+
+            return starData;
+        }
+
+        /// <summary>
+        /// Generates Star orbits.
+        /// </summary>
+        public static void GenerateStarOrbits(Random RNG, StarSystem system, List<int> starList)
+        {
+            // Argument Validation.
+            if (RNG == null)
+            {
+                throw new ArgumentNullException("RNG");
+            }
+            if (system == null)
+            {
+                throw new ArgumentNullException("system");
+            }
+            if (starList == null || starList.Count == 0)
+            {
+                throw new ArgumentNullException("starList");
+            }
+
+            int primaryStar = starList[0];
+            OrbitDB primaryOrbit = system.SystemManager.GetDataBlob<OrbitDB>(primaryStar);
+            MassVolumeDB primaryBody = system.SystemManager.GetDataBlob<MassVolumeDB>(primaryStar);
+
+            // Set primary name.
+
+            OrbitDB innerOrbit = primaryOrbit;
+            MassVolumeDB innerBody = primaryBody;
+            OrbitDB childOrbit;
+            MassVolumeDB childBody;
+
+            for (int i = 1; i < starList.Count; i++)
+            {
+                int innerStar = starList[i - 1];
+                int childStar = starList[i];
+
+                childOrbit = system.SystemManager.GetDataBlob<OrbitDB>(childStar);
+                childBody = system.SystemManager.GetDataBlob<MassVolumeDB>(childStar);
+
+                double orbitalDistance = CalcStarOrbitDistance(system, innerOrbit, childOrbit, innerBody.Mass, childBody.Mass);
+                double otherDirection = CalcStarOrbitDistance(system, childOrbit, innerOrbit, childBody.Mass, innerBody.Mass);
+
+                if (orbitalDistance < otherDirection)
+                {
+                    orbitalDistance = otherDirection;
+                }
+
+                // Let's add some PADDING to that orbit!
+                orbitalDistance = (orbitalDistance * ((RNG.NextDouble() / 3) + 1)) + innerOrbit.Apoapsis;
+
+                double eccentricity = Math.Pow(RNG.NextDouble() * 0.8, 3);
+                double sma = orbitalDistance / (1 - eccentricity);
+
+                childOrbit = OrbitDB.FromAsteroidFormat(innerStar, primaryBody.Mass, childBody.Mass, sma, eccentricity, RNG.NextDouble() * GalaxyFactory.MaxPlanetInclination, RNG.NextDouble() * 360, RNG.NextDouble() * 360, RNG.NextDouble() * 360, Game.Instance.CurrentDateTime);
+                primaryOrbit.Children.Add(childStar);
+
+                // Prep for next pass.
+                innerOrbit = childOrbit;
+                innerBody = childBody;
+            }
+        }
+
+        private static double CalcStarOrbitDistance(StarSystem system, OrbitDB star1Orbit, OrbitDB star2Orbit, double star1Mass, double star2Mass)
+        {
+            if (star1Orbit.Children.Count == 0)
+            {
+                return 0;
+            }
+
+            double maxApo = 0;
+            double planetMass = 0;
+            foreach (int child in star1Orbit.Children)
+            {
+                OrbitDB childOrbit = system.SystemManager.GetDataBlob<OrbitDB>(child);
+                if (childOrbit.Apoapsis > maxApo)
+                {
+                    maxApo = childOrbit.Apoapsis;
+
+                    MassVolumeDB childBody = system.SystemManager.GetDataBlob<MassVolumeDB>(child);
+                    planetMass = childBody.Mass;
+                }
+            }
+            // http://en.wikipedia.org/wiki/Newton%27s_law_of_universal_gravitation
+            double gravAttractionToParent = GameSettings.Science.GravitationalConstant * star1Mass * planetMass / (maxApo * maxApo);
+
+            // Solve for distance to star2 with 10x less gravitational attraction than to star1.
+            // (Note, 10x less depends on a 0.1 value for GalaxyGen.StarOrbitGravityFactor
+            return Math.Sqrt(GameSettings.Science.GravitationalConstant * star2Mass * planetMass / gravAttractionToParent * GalaxyFactory.StarOrbitGravityFactor);
+        }
+    }
+}

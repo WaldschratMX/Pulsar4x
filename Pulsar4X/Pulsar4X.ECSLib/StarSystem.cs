@@ -15,10 +15,18 @@ namespace Pulsar4X.ECSLib
         public List<StarSystem> Neighbors { get { return m_neighbors; } }
         private List<StarSystem> m_neighbors;
 
-        public StarSystem()
+        public string Name { get; set; }
+
+        public int Seed { get; set; }
+
+        public StarSystem(string defaultName, int seed)
         {
             m_systemManager = new EntityManager();
             m_neighbors = new List<StarSystem>();
+
+            Name = defaultName;
+
+            Seed = seed;
         }
 
         internal void ProcessPhase(object state)
