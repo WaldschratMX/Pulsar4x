@@ -10,6 +10,11 @@
       "First": "Rod",
       "Last": "Serling",
       "IsFemale": false
+    },
+    {
+      "First": "Alfred",
+      "Last": "Quack",
+      "IsFemale": false
     }
   ]
 }
